@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+	<import resource="./spring/spring-shiro-web.xml"/>
+
+	<import resource="./spring/spring-db.xml"/>
+
+	<!-- 开启注解扫描 -->
+	<context:component-scan base-package="com.test.project, com.wen.commons">
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+		<context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+		<context:exclude-filter type="regex" expression="com.test.project.config.WebConfig"/>
+	</context:component-scan>
+
+	<!-- 让配置文件中的配置可以以${}方式访问 -->
+	<bean id="configProperties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="ignoreResourceNotFound" value="true"/>
+		<property name="locations">
+			<list>
+				<value>classpath*:base.properties</value>
+			</list>
+		</property>
+    </bean>
+
+    <!-- mybatis配置 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="configLocation" value="classpath:mybatis-configuration.xml"/>
+		<property name="mapperLocations" value="classpath*:/mapper/*.xml"/>
+	</bean>
+	
+	<!-- 通用CRUD初始化 -->
+	<bean class="com.wen.mapper.orm.QuickMapperGenerator">
+		<property name="sqlSessionFactory" ref="sqlSessionFactory"/>
+		<property name="entityPackage" value="com.test.project.db.po"/>
+	</bean>
+	
+	<!-- 动态代理Mapper配置 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.test.project.db.mapper" />
+	</bean>
+
+	<!-- 配置kaptcha验证码 -->
+	<bean id="captchaProducer" class="com.google.code.kaptcha.impl.DefaultKaptcha">
+		<property name="config">
+			<bean class="com.google.code.kaptcha.util.Config">
+				<constructor-arg type="java.util.Properties">
+					<props>
+						<prop key="kaptcha.image.width">100</prop>
+						<prop key="kaptcha.image.height">50</prop>
+						<prop key="kaptcha.noise.impl">com.google.code.kaptcha.impl.DefaultNoise</prop>
+						<prop key="kaptcha.textproducer.char.string">0123456789abcdefghijklmnopqrstuvwxyz</prop>
+						<prop key="kaptcha.textproducer.char.length">4</prop>
+						<prop key="kaptcha.noise.color">green</prop>
+						<prop key="kaptcha.textproducer.font.color">blue</prop>
+					</props>
+				</constructor-arg>
+			</bean>
+		</property>
+	</bean>
+</beans>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:cache="http://www.springframework.org/schema/cache"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/cache
+		http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+	<!-- redisson redis客户端 -->
+    <bean name="redissonClient" class="com.wen.commons.spring.RedissonFactoryBean">
+    	<property name="address" value="${redis.hostName}:${redis.port}"/>
+    	<property name="password" value="${redis.password}" />
+    	<property name="timeout" value="${redis.timeout}" />
+    	<property name="connectionPoolSize" value="20"/>
+    	<property name="minIdle" value="2"/>
+    	<property name="database" value="${redis.database}" />
+    </bean>
+    <!-- redisson spring session -->
+    <bean class="org.redisson.spring.session.config.RedissonHttpSessionConfiguration">
+    	<property name="maxInactiveIntervalInSeconds" value="2592000"/>
+    </bean>
+
+	<!-- spring 注解式缓存 -->
+	<cache:annotation-driven cache-manager="cacheManager"/>
+    <bean id="cacheManager" class="org.redisson.spring.cache.RedissonSpringCacheManager">
+		<constructor-arg index="0" ref="redissonClient"/>
+		<constructor-arg index="1">
+			<map>
+				<entry key="queryCache">
+					<bean class="org.redisson.spring.cache.CacheConfig">
+						<property name="TTL" value="300000"/>
+						<property name="maxIdleTime" value="60000"/>
+					</bean>
+				</entry>
+			</map>
+		</constructor-arg>
+		<!--<constructor-arg index="2">-->
+			<!--<bean class="org.redisson.codec.JsonJacksonCodec"/>-->
+		<!--</constructor-arg>-->
+	</bean>
+
+    <!-- jedis redis客户端
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <property name="maxTotal" value="10"/>
+        <property name="maxIdle" value="10"/>
+        <property name="minIdle" value="2"/>
+        <property name="maxWaitMillis" value="15000"/>
+        <property name="minEvictableIdleTimeMillis" value="300000"/>
+        <property name="numTestsPerEvictionRun" value="3"/>
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+        <property name="testOnBorrow" value="true"/>
+        <property name="testOnReturn" value="true"/>
+        <property name="testWhileIdle" value="true"/>
+    </bean>
+    <bean id="jedisConnectionFactory"
+        class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"
+        destroy-method="destroy">
+        <property name="hostName" value="${redis.hostName}" />
+        <property name="port" value="${redis.port}" />
+        <property name="timeout" value="${redis.timeout}" />
+        <property name="database" value="${redis.database}" />
+        <property name="password" value="${redis.password}" />
+        <property name="usePool" value="${redis.usePool}" />
+        <property name="poolConfig" ref="jedisPoolConfig" />
+    </bean>
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate"
+        p:connection-factory-ref="jedisConnectionFactory">
+        <property name="keySerializer">
+            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+        </property>
+        <property name="hashKeySerializer">
+            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+        </property>
+        <property name="valueSerializer">
+            <bean class="org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer" />
+        </property>
+        <property name="hashValueSerializer">
+            <bean class="org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer" />
+        </property>
+    </bean> -->
+    <!-- jedis spring session
+    <bean class="org.springframework.session.data.redis.config.annotation.web.http.RedisHttpSessionConfiguration">
+    	<property name="defaultRedisSerializer">
+    		<bean class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer" />
+    	</property>
+    	<property name="maxInactiveIntervalInSeconds" value="2592000"/>
+    </bean>
+   	<util:constant static-field="org.springframework.session.data.redis.config.ConfigureRedisAction.NO_OP"/> -->
+</beans>

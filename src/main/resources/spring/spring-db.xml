@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop.xsd">
+		
+	<!-- 数据源配置 -->
+	<bean id="dataSourceMaster" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.user}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="initialSize" value="${jdbc.initialPoolSize}"/>
+        <property name="minIdle" value="5"/>
+        <property name="maxWait" value="60000"/>
+        <property name="maxActive" value="150"/>
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+        <property name="minEvictableIdleTimeMillis" value="300000"/>
+        <property name="validationQuery" value="SELECT 'x'"/>
+        <property name="testWhileIdle" value="true"/>
+        <property name="filters" value="stat" />
+    </bean>
+	
+	<!-- 从库数据源配置 -->
+	<bean id="dataSourceSlave" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+		<property name="url" value="${jdbc.url}"/>
+		<property name="username" value="${jdbc.user}"/>
+		<property name="password" value="${jdbc.password}"/>
+		<property name="initialSize" value="${jdbc.initialPoolSize}"/>
+		<property name="minIdle" value="5"/>
+		<property name="maxWait" value="60000"/>
+		<property name="maxActive" value="150"/>
+		<property name="timeBetweenEvictionRunsMillis" value="60000"/>
+		<property name="minEvictableIdleTimeMillis" value="300000"/>
+		<property name="validationQuery" value="SELECT 'x'"/>
+		<property name="testWhileIdle" value="true"/>
+		<property name="filters" value="stat" />
+	</bean>
+	
+	<bean id="dataSource" class="com.wen.mapper.dataSource.DynamicDataSource">
+		<property name="defaultTargetDataSource" ref="dataSourceMaster"/>
+		<property name="masterDataSource" ref="dataSourceMaster"/>
+		<property name="slaveDataSources">
+			<list>
+				<ref bean="dataSourceSlave"/>
+			</list>
+		</property>
+	</bean>
+	
+ 	<!-- 定义事务管理器 -->
+	<bean id="mybatisTxManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+ 	<!-- 基本事务定义,使用transactionManager作事务管理 -->
+	<tx:advice id="txAdvice" transaction-manager="mybatisTxManager">
+		<tx:attributes>
+			<tx:method name="find*" read-only="true"/>
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="load*" read-only="true"/>
+			<tx:method name="query*" read-only="true"/>
+			<tx:method name="select*" read-only="true"/>
+			<tx:method name="list*" read-only="true"/>
+			<tx:method name="*" read-only="false" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 数据源选择切面 -->
+	<bean id="dataSourceAspect" class="com.wen.mapper.dataSource.DataSourceAspect"/>
+
+	<aop:config>
+		<!-- 配置事务切入点 -->
+		<aop:advisor advice-ref="txAdvice" pointcut="execution(* com.test..*Service.*(..))"/>
+
+		<!-- 多数据源切入点 -->
+		<aop:advisor advice-ref="dataSourceAspect" pointcut="execution(* com.test..*Service.*(..))"/>
+	</aop:config>
+
+</beans>

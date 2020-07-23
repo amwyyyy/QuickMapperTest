@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- shiroFilter配置 -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="filters">
+            <map>
+                <entry key="perms">
+                    <bean class="com.wen.commons.shiro.JsonPermissionsAuthorizationFilter"/>
+                </entry>
+                <entry key="user">
+                    <bean class="com.wen.commons.shiro.JsonUserFilter"/>
+                </entry>
+            </map>
+        </property>
+        <property name="filterChainDefinitionMap">
+            <map>
+                <entry key="/user/login" value="anon"/>
+                <entry key="/module/menus" value="user"/>
+            </map>
+        </property>
+    </bean>
+
+    <!-- 安全管理器 -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager"
+          p:realm-ref="dbRealm" p:rememberMeManager-ref="rememberMeManager" p:cacheManager-ref="jedisCacheManager"/>
+
+    <!-- rememberMe管理器 -->
+    <bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager"
+          p:cookie-ref="rememberMeCookie"/>
+
+    <!-- 会话Cookie模板 -->
+    <bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie"
+          p:name="rememberMe" p:httpOnly="true" p:maxAge="2592000"/>
+
+    <!-- Shiro生命周期处理器-->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+    <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+          depends-on="lifecycleBeanPostProcessor"/>
+
+    <!-- AOP权限注解支持 -->
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor"
+          p:securityManager-ref="securityManager"/>
+</beans>
